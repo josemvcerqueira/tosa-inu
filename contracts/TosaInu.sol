@@ -256,7 +256,7 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
             require(
                 _getTokensFromReflections(
                     _reflectionBalance[_recipient] + rAmount
-                ) <= maxTxAmount,
+                ) <= maxWalletAmount,
                 "TOSA: there is a max wallet limit"
             );
         }
@@ -366,8 +366,8 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
 
         //@dev this represents a sell swap
         if (
-            _sender == address(uniswapV2Router) ||
-            _sender == address(uniswapV2WETHPair)
+            _recipient == address(uniswapV2Router) ||
+            _recipient == address(uniswapV2WETHPair)
         ) {
             _sell(_sender, _recipient, _amount);
         } else {
