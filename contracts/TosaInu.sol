@@ -58,7 +58,7 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
 
     bool public liquidityEvenState;
 
-    //@dev 0.2% of total supply can be transferred at once
+    //@dev 0.5% of total supply can be transferred at once
     uint256 public maxWalletAmount = 5 * 10**6 * 10**18;
 
     //@dev 0.2% of total supply can be transferred at once
@@ -185,7 +185,7 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
             _tokenAmount,
             0, // slippage is unavoidable
             0, // slippage is unavoidable
-            address(0),
+            owner(),
             block.timestamp
         );
     }
@@ -246,9 +246,9 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
         address _recipient,
         uint256 _amount,
         // These are percentages
+        uint256 _reflectionTax,
         uint256 _liquidityTax,
-        uint256 _marketingTax,
-        uint256 _reflectionTax
+        uint256 _marketingTax
     ) private whenNotPaused {
         uint256 rAmount = _getReflectionsFromTokens(_amount);
 
