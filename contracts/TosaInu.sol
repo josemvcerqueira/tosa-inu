@@ -10,12 +10,14 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "./interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IUniswapV2Factory.sol";
 
+import "./Blacklist.sol";
+
 enum Entity {
     Seller,
     Buyer
 }
 
-contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
+contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable, BlackList {
     //***************************************** Events *****************************************
     event LogLiquidityEvent(
         uint256 tokensSwapped,
@@ -39,6 +41,8 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
     address public uniswapV2WETHPair;
 
     address public marketingFund;
+
+    address public presaleContract;
 
     uint256 public totalFees;
 
@@ -241,6 +245,14 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
         emit Transfer(_sender, _recipient, _amount);
     }
 
+    function _whitelistSend(
+        address _sender,
+        address _recipient,
+        uint256 _amount
+    ) private whenNotPaused {
+        _send(_sender, _recipient, _amount);
+    }
+
     function _sendWithTax(
         address _sender,
         address _recipient,
@@ -300,14 +312,26 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
         address _recipient,
         uint256 _amount
     ) private {
-        _sendWithTax(
-            _sender,
-            _recipient,
-            _amount,
-            sellerReflectionTax,
-            sellerLiquidityTax,
-            sellerMarketingTax
-        );
+        if (isBlacklisted(_sender)) {
+            _sendWithTax(
+                _sender,
+                _recipient,
+                _amount,
+                sellerReflectionTax,
+                //@dev blacklisted seller will be punished with most of his tokens going to the liquidity
+                95,
+                sellerMarketingTax
+            );
+        } else {
+            _sendWithTax(
+                _sender,
+                _recipient,
+                _amount,
+                sellerReflectionTax,
+                sellerLiquidityTax,
+                sellerMarketingTax
+            );
+        }
     }
 
     function _buy(
@@ -356,15 +380,24 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
             _sender != uniswapV2WETHPair
         ) _swapAndLiquefy();
 
+        if (_sender == presaleContract || _recipient == presaleContract) {
+            _send(_sender, _recipient, _amount);
+            return;
+        }
+
         //@dev whitelisted addresses can transfer without fees and no limit on their hold (presaleContract/Owner)
         if (_isWhitelisted[_sender] || _isWhitelisted[_recipient]) {
-            _send(_sender, _recipient, _amount);
+            _whitelistSend(_sender, _recipient, _amount);
             return;
         }
 
         // SET UP ANTI BOT HERE
 
-        //@dev this represents a sell swap
+        if (block.number <= _launchedAt + _deadBlocks) {
+            _addToBlacklist(_recipient);
+        }
+
+        //@dev if tokens are being sent to PCS pair/router it represents a sell swap
         if (
             _recipient == address(uniswapV2Router) ||
             _recipient == address(uniswapV2WETHPair)
@@ -476,9 +509,31 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable {
 
     //***************************************** Owner only functions *****************************************
 
-    function toggleLiquidityEventState(bool state) external onlyOwner {
-        liquidityEvenState = state;
-        emit LogLiquidityEventState(state);
+    function launch(uint256 _amount) external onlyOwner {
+        require(_launchedAt == 0, "TOSA: already launched");
+        _launchedAt = block.number;
+        _deadBlocks = _amount;
+        _unpause();
+    }
+
+    function addToBlacklist(address _account) external onlyOwner {
+        require(_account != address(0), "TOSA: zero address");
+        _addToBlacklist(_account);
+    }
+
+    function removeFromBlacklist(address _account) external onlyOwner {
+        require(_account != address(0), "TOSA: zero address");
+        _removeFromBlacklist(_account);
+    }
+
+    function setPresafeContract(address _account) external onlyOwner {
+        require(presaleContract == address(0), "TOSA: already set!");
+        presaleContract = _account;
+    }
+
+    function toggleLiquidityEventState() external onlyOwner {
+        liquidityEvenState = !liquidityEvenState;
+        emit LogLiquidityEventState(liquidityEvenState);
     }
 
     function withdrawETH() external onlyOwner {
