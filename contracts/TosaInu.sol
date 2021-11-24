@@ -60,7 +60,7 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable, BlackList {
 
     bool public liquidityEventInProgress;
 
-    bool public liquidityEvenState;
+    bool public liquidityEventState;
 
     //@dev 0.5% of total supply can be transferred at once
     uint256 public maxWalletAmount = 5 * 10**6 * 10**18;
@@ -366,7 +366,7 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable, BlackList {
         if (
             balanceOf(address(this)) >= _numberTokensSellToAddToLiquidity &&
             !liquidityEventInProgress &&
-            liquidityEvenState &&
+            liquidityEventState &&
             _sender != uniswapV2WETHPair
         ) _swapAndLiquefy();
 
@@ -522,8 +522,8 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable, BlackList {
     }
 
     function toggleLiquidityEventState() external onlyOwner {
-        liquidityEvenState = !liquidityEvenState;
-        emit LogLiquidityEventState(liquidityEvenState);
+        liquidityEventState = !liquidityEventState;
+        emit LogLiquidityEventState(liquidityEventState);
     }
 
     function withdrawETH() external onlyOwner {
