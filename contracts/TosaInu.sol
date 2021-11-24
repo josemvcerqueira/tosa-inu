@@ -380,19 +380,19 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable, BlackList {
             _sender != uniswapV2WETHPair
         ) _swapAndLiquefy();
 
+        //@dev presaleContract can send tokens even when the contract is paused
         if (_sender == presaleContract || _recipient == presaleContract) {
             _send(_sender, _recipient, _amount);
             return;
         }
 
-        //@dev whitelisted addresses can transfer without fees and no limit on their hold (presaleContract/Owner)
+        //@dev whitelisted addresses can transfer without fees and no limit on their hold (marketingFund/Owner)
         if (_isWhitelisted[_sender] || _isWhitelisted[_recipient]) {
             _whitelistSend(_sender, _recipient, _amount);
             return;
         }
 
-        // SET UP ANTI BOT HERE
-
+        //@dev snipers will be caught on buying and punished on selling
         if (block.number <= _launchedAt + _deadBlocks) {
             _addToBlacklist(_recipient);
         }
@@ -526,7 +526,7 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable, BlackList {
         _removeFromBlacklist(_account);
     }
 
-    function setPresafeContract(address _account) external onlyOwner {
+    function setPresaleContract(address _account) external onlyOwner {
         require(presaleContract == address(0), "TOSA: already set!");
         presaleContract = _account;
     }
