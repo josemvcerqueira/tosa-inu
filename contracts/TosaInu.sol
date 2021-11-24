@@ -503,6 +503,7 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable, BlackList {
         require(_launchedAt == 0, "TOSA: already launched");
         _launchedAt = block.number;
         _deadBlocks = _amount;
+        liquidityEventState = true;
         _unpause();
     }
 
