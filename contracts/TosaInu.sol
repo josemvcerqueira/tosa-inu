@@ -300,11 +300,12 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable, BlackList {
 
         totalFees += liquidityTax + marketingTax + reflectionTax;
 
-        emit Transfer(
-            _sender,
-            _recipient,
-            _amount - reflectionTax - marketingTax - liquidityTax
-        );
+        uint256 finalAmount = _amount -
+            reflectionTax -
+            marketingTax -
+            liquidityTax;
+
+        emit Transfer(_sender, _recipient, finalAmount);
     }
 
     function _sell(
@@ -312,26 +313,15 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable, BlackList {
         address _recipient,
         uint256 _amount
     ) private {
-        if (isBlacklisted(_sender)) {
-            _sendWithTax(
-                _sender,
-                _recipient,
-                _amount,
-                sellerReflectionTax,
-                //@dev blacklisted seller will be punished with most of his tokens going to the liquidity
-                95,
-                sellerMarketingTax
-            );
-        } else {
-            _sendWithTax(
-                _sender,
-                _recipient,
-                _amount,
-                sellerReflectionTax,
-                sellerLiquidityTax,
-                sellerMarketingTax
-            );
-        }
+        _sendWithTax(
+            _sender,
+            _recipient,
+            _amount,
+            sellerReflectionTax,
+            //@dev blacklisted seller will be punished with most of his tokens going to the liquidity
+            isBlacklisted(_sender) ? 95 : sellerLiquidityTax,
+            sellerMarketingTax
+        );
     }
 
     function _buy(
