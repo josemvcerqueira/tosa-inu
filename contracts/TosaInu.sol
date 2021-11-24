@@ -62,7 +62,7 @@ contract TosaInu is IERC20, IERC20Metadata, Pausable, Ownable, BlackList {
 
     bool public liquidityEventState;
 
-    //@dev 0.5% of total supply can be transferred at once
+    //@dev 0.5% of total supply a wallet can have
     uint256 public maxWalletAmount = 5 * 10**6 * 10**18;
 
     //@dev 0.2% of total supply can be transferred at once
